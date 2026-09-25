@@ -1,0 +1,450 @@
+{
+  "name": "AI Customer Support Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Customer Support Request",
+        "formDescription": "Please complete the form below and our support team will review your request.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Customer Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Support Request",
+              "fieldType": "textarea",
+              "placeholder": "Please describe what you need help with...",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b51115e6-60af-4136-b660-723e99194f31",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "5e3b60b5-239b-475d-9760-e2ac0a1f792f"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O",
+          "cachedResultUrl": ""
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a customer support triage system.\n\nYour job is to analyze a customer's support request and extract structured information.\n\nYou must identify:\n\n1. request_type\n2. customer_name\n3. urgency\n4. key_issue\n5. recommended_action\n\nUrgency must be exactly one of these three values:\n\nLow\nMedium\nHigh\n\nUse High when the request involves things such as:\n- Account access problems preventing important work\n- Security concerns\n- Service outages\n- Significant time-sensitive business impact\n- Serious customer-impacting problems\n\nUse Medium when:\n- The customer is experiencing a recurring or meaningful problem\n- The problem affects normal use but is not immediately critical\n- The issue needs support attention but is not time-sensitive\n\nUse Low when:\n- The customer has a general question\n- The customer has a minor issue\n- The customer has a feature request\n- The request is not time-sensitive\n\nDo not invent information that the customer did not provide.\n\nReturn only the requested structured information."
+            },
+            {
+              "content": "=Customer Name:\n{{ $json[\"Customer Name\"] }}\n\nCustomer Request:\n{{ $json[\"Support Request\"] }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"request_type\": {\n      \"type\": \"string\"\n    },\n    \"customer_name\": {\n      \"type\": \"string\"\n    },\n    \"urgency\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"Low\",\n        \"Medium\",\n        \"High\"\n      ]\n    },\n    \"key_issue\": {\n      \"type\": \"string\"\n    },\n    \"recommended_action\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"request_type\",\n    \"customer_name\",\n    \"urgency\",\n    \"key_issue\",\n    \"recommended_action\"\n  ],\n  \"additionalProperties\": false\n}"
+            }
+          }
+        }
+      },
+      "id": "a92bf081-13a9-4338-a6bf-af045247ce95",
+      "name": "OpenAI I",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "4p86HO2aXbibIMZV",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional customer support representative.\n\nWrite a concise, professional and helpful response to the customer.\n\nRules:\n\n- Be polite and empathetic.\n- Acknowledge the customer's issue.\n- Directly address the customer's request when possible.\n- Do not invent company policies.\n- Do not invent refunds, credits, deadlines, or technical facts.\n- Do not claim an issue has been resolved unless the provided information confirms that it has been resolved.\n- If the recommended action is escalation, tell the customer that the issue has been referred to the appropriate support team.\n- Keep the response concise.\n- Do not mention AI, language models, automation, prompts, or this workflow.\n- Sign off as \"The Support Team\"."
+            },
+            {
+              "content": "=Customer Name:\n{{ $('On form submission').item.json['Customer Name'] }}\n\nCustomer Email:\n{{ $('On form submission').item.json['Email Address'] }}\n\nOriginal Customer Request:\n{{ $('On form submission').item.json['Support Request'] }}\n\nRequest Type:\n{{ $('OpenAI I').item.json.output[0].content[0].text.request_type }}\n\nUrgency:\n{{ $('OpenAI I').item.json.output[0].content[0].text.urgency }}\n\nKey Issue:\n{{ $('OpenAI I').item.json.output[0].content[0].text.key_issue }}\n\nRecommended Action:\n{{ $('OpenAI I').item.json.output[0].content[0].text.recommended_action }}\n\nWrite the customer-facing response now."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "fd2b015c-f05c-4ace-93c1-6e69e05b5200",
+      "name": "OpenAI II",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        144
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "4p86HO2aXbibIMZV",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1yhc_DkuOhhc6zS_CJV26Sd55IvpXYtOBnLf6hy0merw",
+          "mode": "list",
+          "cachedResultName": "AI Customer Support Requests",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yhc_DkuOhhc6zS_CJV26Sd55IvpXYtOBnLf6hy0merw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yhc_DkuOhhc6zS_CJV26Sd55IvpXYtOBnLf6hy0merw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer Name": "={{ $('On form submission').item.json['Customer Name'] }}",
+            "Customer Email": "={{ $('On form submission').item.json['Email Address'] }}",
+            "Request Type": "={{ $('OpenAI I').item.json.output[0].content[0].text.request_type }}",
+            "Urgency": "={{ $('OpenAI I').item.json.output[0].content[0].text.urgency }}",
+            "Key Issue": "={{ $('OpenAI I').item.json.output[0].content[0].text.key_issue }}",
+            "Recommended Action": "={{ $('OpenAI I').item.json.output[0].content[0].text.recommended_action }}",
+            "AI Response": "={{ $('OpenAI II').item.json.output[0].content[0].text }}",
+            "Original Request": "={{ $('On form submission').item.json['Support Request'] }}",
+            "Alert Sent": "={{ $('OpenAI I').item.json.output[0].content[0].text.urgency === 'High' ? 'Yes' : 'No' }}",
+            "Timestamp": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}"
+          },
+          "matchingColumns": [
+            "Customer Name"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Email",
+              "displayName": "Customer Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Request Type",
+              "displayName": "Request Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Key Issue",
+              "displayName": "Key Issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Recommended Action",
+              "displayName": "Recommended Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Original Request",
+              "displayName": "Original Request",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Alert Sent",
+              "displayName": "Alert Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "73e7f6e4-f6c2-4286-95e0-03b7f651d762",
+      "name": "Google Sheets: Customer Requests Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        592,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xxZN68m0B5v7Jnj6",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bfa54b51-f27a-48b6-a2c0-527d18df5da0",
+              "leftValue": "={{ $('OpenAI I').item.json.output[0].content[0].text.urgency }}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "84b4e618-a049-4e18-b220-6e04019c568f",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "URGENT CUSTOMER SUPPORT REQUEST",
+        "emailType": "text",
+        "message": "=A high-priority customer support request has been received.\n\nCustomer:\n{{ $('On form submission').item.json['Customer Name'] }}\n\nEmail:\n{{ $('On form submission').item.json['Email Address'] }}\n\nRequest Type:\n{{ $('OpenAI I').item.json.output[0].content[0].text.request_type }}\n\nUrgency:\n{{ $('OpenAI I').item.json.output[0].content[0].text.urgency }}\n\nKey Issue:\n{{ $('OpenAI I').item.json.output[0].content[0].text.key_issue }}\n\nRecommended Action:\n{{ $('OpenAI I').item.json.output[0].content[0].text.recommended_action }}\n\nOriginal Request:\n{{ $('On form submission').item.json['Support Request'] }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "479d3919-52a6-4781-9706-e10f5db0e49b",
+      "name": "Gmail: High Urgency Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        -96
+      ],
+      "webhookId": "67e6cdaf-dc11-4f54-b082-91a693f1b4a9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfhF4ps3mNiplIx5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json['Email Address'] }}",
+        "subject": "Re: Your Customer Support Request",
+        "emailType": "text",
+        "message": "={{ $('OpenAI II').item.json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "d9f880ad-af45-4cce-a58c-a711b9d97eb6",
+      "name": "Gmail: Customer Response",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        144
+      ],
+      "webhookId": "2bf43db0-7717-4596-a4d9-9dfde05d1edf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfhF4ps3mNiplIx5",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "OpenAI I",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI I": {
+      "main": [
+        [
+          {
+            "node": "OpenAI II",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI II": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Customer Requests Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Customer Requests Data": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Gmail: High Urgency Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gmail: Customer Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail: Customer Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0ba17ed4-0856-4af6-908a-ba663419a82d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d63258d6a2650e794ac5e3ffee0a515cef04cfe1ba3b40f4f4e00b5e2e355c9"
+  },
+  "nodeGroups": [],
+  "id": "IACNFnoG8S0wIYi4",
+  "tags": []
+}
